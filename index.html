@@ -1,0 +1,1362 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><title>REBUILT Simulator - TitanBot 2543</title>
+<style>
+body {
+  margin:0;
+  background:#1b1d21;
+  color:#e6e6e6;
+  font:13px system-ui,sans-serif;
+  display:flex;
+  flex-direction:column;
+  height:100vh;
+}
+button,select,input {
+  background:#33373f;
+  color:#eee;
+  border:1px solid #555;
+  border-radius:4px;
+  padding:3px 7px;
+}
+button:hover {
+  background:#444a55;
+}
+h3 {
+  margin:6px 0 3px;
+}
+#bug {
+  display:flex;
+  align-items:stretch;
+  height:58px;
+  background:#0d0d10;
+  color:#fff;
+  font-weight:700;
+  overflow:hidden;
+  flex:none;
+}
+#bug>div {
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:0 10px;
+  gap:6px;
+}
+.lg {
+  font-style:italic;
+  background:#fff;
+  color:#111;
+  font-size:15px;
+}
+.tm {
+  gap:10px!important;
+}
+.tm span {
+  background:#0006;
+  padding:2px 6px;
+  border-radius:3px;
+  font-size:14px;
+}
+.fu {
+  font-size:16px;
+  min-width:64px;
+}
+.sc {
+  font-size:30px;
+  min-width:84px;
+  flex-direction:column;
+}
+.sc small {
+  font-size:11px;
+  line-height:1;
+}
+#mid {
+  background:#26282d;
+  flex-direction:column;
+  min-width:200px;
+  gap:0!important;
+  line-height:1.1;
+}
+#mid b {
+  font-size:26px;
+}
+#mid small {
+  font-size:12px;
+}
+#top {
+  display:flex;
+  gap:6px;
+  align-items:center;
+  padding:4px 8px;
+  background:#25282e;
+  flex-wrap:wrap;
+  flex:none;
+}
+#main {
+  flex:1;
+  display:flex;
+  min-height:0;
+}
+#cw {
+  flex:1;
+  min-width:0;
+  position:relative;
+}
+#cv {
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+}
+#side {
+  width:300px;
+  background:#25282e;
+  padding:8px;
+  overflow:auto;
+  flex:none;
+}
+#log {
+  font:11px monospace;
+  height:130px;
+  overflow:auto;
+  background:#1b1d21;
+  margin-top:6px;
+  padding:4px;
+}
+#tlw {
+  background:#25282e;
+  padding:3px 8px;
+  flex:none;
+  display:flex;
+  gap:8px;
+  align-items:center;
+}
+#tlw .c {
+  flex:1;
+  position:relative;
+}
+#tl {
+  width:100%;
+}
+#tlc {
+  width:100%;
+  height:14px;
+  display:block;
+}
+#setup,#res {
+  position:fixed;
+  inset:0;
+  background:#1b1d21ee;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  z-index:9;
+}
+#res {
+  display:none;
+}
+#setup>div,#res>div {
+  background:#25282e;
+  padding:16px;
+  border-radius:8px;
+  max-width:600px;
+}
+#setup input {
+  width:70px;
+}
+table {
+  border-collapse:collapse;
+}
+td,th {
+  border:1px solid #555;
+  padding:2px 8px;
+}
+.r {
+  color:#ff6a6a;
+}
+.b {
+  color:#6aa5ff;
+}
+
+</style></head><body>
+<div id="setup"><div><h2>Which teams are playing?</h2><div id="teams"></div>
+Match # <input id="mn" value="24"> Seed <input id="seed" value="2543"> Mode <select id="mode"><option value="full">Full Match</option><option value="auto">Autonomous Only</option></select>
+<p>Your robot: <select id="mine"></select> Preload FUEL (0-8) <input id="pre" value="8"></p>
+<button onclick="startMatch()">Start Match</button>
+<p style="color:#aaa;max-width:520px">Dimensions/rules follow the 2026 manual. Still PROVISIONAL: TOWER ladder depth, TOWER/OUTPOST/DEPOT positions (traced from images), FUEL physics coefficients, robot defaults.</p></div></div>
+<div id="res"><div id="resb"></div></div>
+<div id="bug"><div class="lg">FIRST AGE</div><div class="tm" id="rt" style="background:#7a1010"></div><div class="fu" id="rf" style="background:#a31515">0/100</div>
+<div class="sc" style="background:#e3262e"><small>Red</small><span id="rs">0</span></div>
+<div id="mid"><small id="qm"></small><small><span id="pl">A</span> <span id="shiftT">:20</span> <span id="phase"></span></small><b id="clock">2:40</b></div>
+<div class="sc" style="background:#1565d8"><small>Blue</small><span id="bs">0</span></div><div class="fu" id="bf" style="background:#0f4fb0">0/100</div>
+<div class="tm" id="bt" style="background:#0b3b8c"></div><div class="lg">REBUILT</div></div>
+<div id="top"><button onclick="play=!play">Play/Pause</button><button onclick="step()">Step</button><button onclick="resetSim()">Reset</button>
+Speed <select id="spd" onchange="speed=+this.value"><option>0.25</option><option>0.5</option><option selected>1</option><option>2</option></select>
+<label><input type="checkbox" id="ovp" checked>plan</label><label><input type="checkbox" id="ova" checked>actual</label><label><input type="checkbox" id="ovs" checked>aim</label><label><input type="checkbox" id="ovv">vel</label><label><input type="checkbox" id="ovc" checked>collisions</label><label><input type="checkbox" id="ovg">grid</label><label><input type="checkbox" id="ovd">diag</label>
+<button onclick="zm=1;pox=poy=0;resize()">Reset view</button><button onclick="togSide()">Panel</button>
+<button onclick="save()">Save Strategy</button><button onclick="loadS()">Load Strategy</button><button onclick="exportJ()">Export JSON</button><button onclick="$('imp').click()">Import JSON</button><input type="file" id="imp" hidden accept=".json"></div>
+<div id="main"><div id="cw"><canvas id="cv"></canvas></div><div id="side">
+<h3>Selected robot</h3><div id="info">Click a robot</div>
+<div>Shooter <select id="cs" onchange="cfgR()"><option value="turret">Turret</option><option value="double">Double Turret</option><option value="drum">Drum / dumper (4 per shot)</option></select><br>
+Intake side <select id="cid" onchange="cfgR()"><option value="f">Front</option><option value="b">Back</option><option value="l">Left</option><option value="r">Right</option></select><br>
+Traversal <select id="ctv" onchange="cfgR()"><option value="bump">Bump only</option><option value="trench">Under TRENCH too</option></select><br>
+Drive <select id="cdr" onchange="cfgR()"><option value="mecanum">Mecanum (holonomic)</option><option value="diff">Differential</option></select><br>
+Capacity <input id="cc" type="number" style="width:48px" onchange="cfgR()"> Fire interval(s) <input id="cr" type="number" step=".05" style="width:55px" onchange="cfgR()"></div>
+<h3>Autonomous editor</h3>
+<label><input type="checkbox" id="edit">Click field to add waypoint</label><br>
+Action <select id="act"><option value="drive">Drive</option><option value="intake">Drive + Intake</option><option value="shoot">Aim + Shoot</option><option value="wait">Wait 1s</option><option value="turn">Turn to heading</option><option value="climb1">Climb L1</option><option value="climb2">Climb L2</option><option value="climb3">Climb L3</option></select> Hdg° <input id="hd" value="0" style="width:45px"><br>
+<button onclick="clearWP()">Clear</button><button onclick="runAuto()">Run selected</button><button onclick="runAll()">Run all</button>
+<p style="margin:4px 0">WASD field-centric, J/L rotate, I intake, Space shoot, C climb (level below). Drag waypoints. Right-drag pans, wheel zooms.<br>Climb level <select id="clm"><option>1</option><option>2</option><option>3</option></select></p>
+<h3>Referee / human player</h3>
+<button onclick="foul('red',5)">Red minor (+5 B)</button><button onclick="foul('red',15)">Red major</button><button onclick="foul('blue',5)">Blue minor (+5 R)</button><button onclick="foul('blue',15)">Blue major</button><br>
+<button onclick="hp('red')">Red HP chute</button><button onclick="hp('blue')">Blue HP chute</button>
+<h3>Compare routines</h3><button onclick="saveSlot('A')">Save A</button><button onclick="saveSlot('B')">Save B</button><button onclick="compare()">Compare A vs B</button><button onclick="selfTest()">Self-test</button><div id="cmp"></div>
+<div id="stats"></div><div id="log"></div></div></div>
+<div id="tlw"><span id="tlt">0.0s</span><div class="c"><input type="range" id="tl" min="0" max="163" step="0.1" value="0" oninput="scrub(+this.value)"><canvas id="tlc" height="14"></canvas></div></div>
+<script>
+/**
+ * REBUILT Match Simulator - TitanBot 2543
+ * Units: inches, radians, seconds. World origin = top-left of the field; +x toward blue, +y down.
+ * Sections: config/rules, state, physics, autonomous, compare, rendering, input, save/load.
+ */
+const $ = id => document.getElementById(id), wrap = a => Math.atan2(Math.sin(a), Math.cos(a)), esc = s => String(s).replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+// ===== CONFIG (inches; dims from 2026 manual 5.2-5.9) =====
+const CFG = { fieldW: 651.2, fieldH: 317.7, hub: { r: 23.5, open: 20.85, x: [182.1, 469.1], y: 158.85, z: 72, spill: { v: 120, interval: .35, spread: 1.3 } },
+    fuel: { r: 2.955, mass: .215, fric: 60, rest: .55, drag: .1 }, g: 386, dt: 1 / 120, zoneDepth: 158.6,
+    robot: { len: 30, wid: 30, vmax: 150, acc: 200, wmax: 4, cap: 8, rate: .25, shootV: 260, disp: .03 },
+    rp: { energized: 100, supercharged: 360, traversal: 50 }, climb: { 1: 3, 2: 5, 3: 8 }, towerPts: { 1: 10, 2: 20, 3: 30 }, autoTowerPts: 15 };
+// ----- TRENCH / BUMP / TOWER / OUTPOST geometry (2026 manual 5.4-5.8) -----
+// TRENCH: 65.65in wide x 47in deep; only a 50.34in-wide x 22.25in-tall opening is passable, flanked by posts.
+CFG.trench = { w: 65.65, d: 47, open: 50.34, clear: 22.25 };
+CFG.trench.sup = (CFG.trench.w - CFG.trench.open) / 2;
+CFG.bumpRoll = 120; // in/s^2 ramp acceleration pushing FUEL off a BUMP
+CFG.zones = [];
+CFG.hub.x.forEach((hx, i) => {
+    const c = i ? '#2e6fd0' : '#c0392b', H = CFG.hub.y, K = CFG.trench, e = H - 23.5 - 73;
+    for (const y0 of [0, CFG.fieldH - K.w]) {
+        CFG.zones.push({ t: 'solid', lbl: ' ', x: hx - K.d / 2, y: y0, w: K.d, h: K.sup, c }); // post (blocks every robot)
+        CFG.zones.push({ t: 'solid', lbl: ' ', x: hx - K.d / 2, y: y0 + K.w - K.sup, w: K.d, h: K.sup, c }); // post
+        CFG.zones.push({ t: 'trench', lbl: 'TRENCH', x: hx - K.d / 2, y: y0 + K.sup, w: K.d, h: K.open, c }); // opening (blocks tall robots only)
+    }
+    for (const y of [e, H + 23.5])
+        CFG.zones.push({ t: 'bump', x: hx - 22.2, y, w: 44.4, h: 73, c }); // BUMPs flank the HUB
+});
+CFG.bumps = CFG.zones.filter(z => z.t == 'bump');
+// TOWER is open (robots may drive through it, including from behind); only the LADDER at its front is climbable.
+CFG.towers = { red: { x: 0, y: 143.4, w: 45, h: 49.25 }, blue: { x: CFG.fieldW - 45, y: 125.1, w: 45, h: 49.25 } }; // PROVISIONAL position
+CFG.ladderDepth = 15; // PROVISIONAL ladder depth
+// OUTPOSTs sit OUTSIDE the field walls (not collidable); the HP chute opens onto the field.
+CFG.outposts = { red: { x: -37.6, y: 246.7, w: 37.6, h: 71 }, blue: { x: CFG.fieldW, y: 0, w: 37.6, h: 71 } }; // PROVISIONAL position
+// ===== RULES (manual 6.4-6.5) =====
+const RULES = { fuelPoints: 1, first: null, hubActive: (t, al) => { if (t < 30 || t >= 130)
+        return true; const i = Math.floor((t - 30) / 25), f = RULES.first || 'red'; return (al == f) === (i % 2 == 1); },
+    unimplemented: ['automatic penalty detection (manual fouls only)', 'OUTPOST CORRAL', 'DEPOT barriers', 'pins/cards'] };
+let sS = 1;
+function srand() { sS |= 0; sS = sS + 0x6D2B79F5 | 0; let x = Math.imul(sS ^ sS >>> 15, 1 | sS); x = x + Math.imul(x ^ x >>> 7, 61 | x) ^ x; return ((x ^ x >>> 14) >>> 0) / 4294967296; }
+function rng(s) { return () => { s |= 0; s = s + 0x6D2B79F5 | 0; let t = Math.imul(s ^ s >>> 15, 1 | s); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+const cv = $('cv'), cx = cv.getContext('2d'), tlc = $('tlc'), tcx = tlc.getContext('2d');
+let robots = [], balls = [], t = 0, play = false, speed = 1, acc = 0, last = 0, sel = 0, score = { red: 0, blue: 0 }, cfg = {}, events = [], stats = {}, initSnap = null, hubQ = [[], []], hubT = [0, 0], fuelA = { red: 0, blue: 0 }, tp = { red: 0, blue: 0 }, fp = { red: 0, blue: 0 }, F = { a: 0, b: 0 }, autoScore = null, chute = { red: 24, blue: 24 }, chuteOpen = { red: false, blue: false }, chuteT = { red: 0, blue: 0 }, snaps = [], quiet = false, ended = false, slots = {}, cols = [], lastCol = -9, keys = {}, scale = 1, bs = 1, ox = 0, oy = 0, zm = 1, pox = 0, poy = 0, dragWP = null, pan = null;
+const IDIR = { f: 0, b: Math.PI, l: -Math.PI / 2, r: Math.PI / 2 }, CF = ['shooter', 'trench', 'cap', 'rate', 'drive', 'idir', 'len', 'wid', 'vmax', 'acc'], BOUND = [20, 30, 55, 80, 105, 130, 160];
+(function () {
+    let h = '';
+    for (const [a, c] of [['Red', 'r'], ['Blue', 'b']]) {
+        h += `<h3 class="${c}">${a} Alliance</h3>`;
+        for (let i = 0; i < 3; i++)
+            h += `<input id="${a}${i}" value="${a == 'Red' ? [2543, 254, 1678][i] : [971, 118, 148][i]}"> <input id="${a}n${i}" placeholder="name" style="width:140px"><br>`;
+    }
+    $('teams').innerHTML = h;
+    let o = '';
+    for (let i = 0; i < 6; i++)
+        o += `<option value="${i}">${i < 3 ? 'Red' : 'Blue'} ${i % 3 + 1}</option>`;
+    $('mine').innerHTML = o;
+})();
+const startPos = [[140, 50], [140, 158.85], [140, 268], [511.2, 50], [511.2, 158.85], [511.2, 268]];
+
+/** Read the setup form, create the match, and show the field. */
+function startMatch() {
+    cfg = { teams: [...Array(6).keys()].map(i => $((i < 3 ? 'Red' : 'Blue') + i % 3).value), seed: +$('seed').value || 1, mode: $('mode').value, pre: Math.max(0, Math.min(8, +$('pre').value || 0)), match: $('mn').value };
+    sel = +$('mine').value;
+    $('setup').style.display = 'none';
+    $('qm').textContent = 'Qualification ' + cfg.match + ' of 72';
+    $('rt').innerHTML = cfg.teams.slice(0, 3).map(x => '<span>' + esc(x) + '</span>').join('');
+    $('bt').innerHTML = cfg.teams.slice(3).map(x => '<span>' + esc(x) + '</span>').join('');
+    build();
+    syncUI();
+    play = false;
+    resize();
+}
+
+/** (Re)initialise all match state: robots, FUEL layout (deterministic from the seed), scores, chutes, snapshots. */
+function build() {
+    const rn = rng(cfg.seed);
+    hubQ = [[], []];
+    hubT = [0, 0];
+    RULES.first = null;
+    sS = cfg.seed + 7;
+    t = 0;
+    score = { red: 0, blue: 0 };
+    fuelA = { red: 0, blue: 0 };
+    tp = { red: 0, blue: 0 };
+    fp = { red: 0, blue: 0 };
+    F = { a: 0, b: 0 };
+    autoScore = null;
+    chute = { red: 24, blue: 24 };
+    chuteOpen = { red: false, blue: false };
+    chuteT = { red: 0, blue: 0 };
+    ended = false;
+    snaps = [];
+    events = [];
+    cols = [];
+    stats = { shots: 0, hits: 0, wasted: 0, collected: 0, collisions: 0, blocked: 0 };
+    if (!quiet)
+        $('log').innerHTML = '';
+    robots = startPos.map((p, i) => ({ i, team: cfg.teams[i], al: i < 3 ? 'red' : 'blue', x: p[0], y: p[1], h: i < 3 ? 0 : Math.PI, vx: 0, vy: 0, w: 0, tvx: 0, tvy: 0, tw: 0, ...CFG.robot, shooter: 'turret', trench: false, drive: 'mecanum', idir: 0,
+        carried: cfg.pre, intake: false, wp: [], cmd: [], ci: 0, cool: 0, dist: 0, still: 0, auto: false, ct: 0, level: 0, climbing: false, hold: false, cl: null, trail: [], tt: 0, stuck: 0, tInt: 0 }));
+    balls = [];
+    const mk = (x, y) => balls.push({ x: x + (rn() - .5) * .2, y: y + (rn() - .5) * .2, vx: 0, vy: 0, z: 0, vz: 0, air: false, dead: false, al: null });
+    let nb = 408 - 6 * cfg.pre;
+    for (let c = 0; c < 12; c++)
+        for (let q = 0; q < 34; q++)
+            if (nb-- > 0)
+                mk(289.6 + c * 6, 56.9 + q * 6);
+    for (const [dx, dy] of [[3, 66], [622, 214]])
+        for (let c = 0; c < 4; c++)
+            for (let q = 0; q < 6; q++)
+                mk(dx + c * 6, dy + q * 7);
+    initSnap = JSON.stringify(robots.map(r => r.wp));
+    snaps[0] = snap();
+    log('Match initialized (seed ' + cfg.seed + ')');
+}
+
+/** Extract the editable per-robot configuration (shooter, intake side, drive, traversal, size, limits). */
+function cfgOf(r) { const o = {}; for (const k of CF)
+    o[k] = r[k]; return o; }
+
+/** Rebuild the match from the initial conditions, keeping robot configuration and waypoints. */
+function resetSim() { const w = initSnap ? JSON.parse(initSnap) : [], cf = robots.map(cfgOf); build(); robots.forEach((r, i) => { r.wp = w[i] || []; Object.assign(r, cf[i]); }); syncUI(); play = false; $('res').style.display = 'none'; }
+
+/** Append a timestamped entry to the event log (also used for timeline markers). */
+function log(m) { events.push([t, m]); if (quiet)
+    return; const d = $('log'); d.innerHTML += `<div>${t.toFixed(1)}s ${esc(m)}</div>`; d.scrollTop = 1e9; }
+
+/** Re-render the log panel from the events array. */
+function rebuildLog() { $('log').innerHTML = events.slice(-300).map(e => `<div>${e[0].toFixed(1)}s ${esc(e[1])}</div>`).join(''); }
+// ===== snapshots (timeline scrub, headless runs) =====
+
+/** Capture complete dynamic state (used for the timeline scrub and headless comparison runs). */
+function snap() {
+    return { t, score: { ...score }, fuelA: { ...fuelA }, tp: { ...tp }, fp: { ...fp }, F: { ...F }, first: RULES.first, sS, autoScore: autoScore && { ...autoScore }, chute: { ...chute }, chuteOpen: { ...chuteOpen }, chuteT: { ...chuteT }, stats: { ...stats }, ended,
+        robots: JSON.parse(JSON.stringify(robots)), balls: balls.map(b => ({ ...b })), q: hubQ.map(q => q.map(b => balls.indexOf(b))), hubT: [...hubT], ev: events.length };
+}
+
+/** Restore a state captured by snap(). */
+function restore(s) {
+    t = s.t;
+    score = { ...s.score };
+    fuelA = { ...s.fuelA };
+    tp = { ...s.tp };
+    fp = { ...s.fp };
+    F = { ...s.F };
+    RULES.first = s.first;
+    sS = s.sS;
+    autoScore = s.autoScore && { ...s.autoScore };
+    chute = { ...s.chute };
+    chuteOpen = { ...s.chuteOpen };
+    chuteT = { ...s.chuteT };
+    stats = { ...s.stats };
+    ended = s.ended;
+    robots = JSON.parse(JSON.stringify(s.robots));
+    balls = s.balls.map(b => ({ ...b }));
+    hubQ = s.q.map(q => q.map(i => balls[i]));
+    hubT = [...s.hubT];
+    events.length = s.ev;
+    if (!quiet)
+        rebuildLog();
+}
+
+/** Timeline scrubbing: restore the nearest earlier snapshot and re-simulate forward to the requested time. */
+function scrub(v) { play = false; let i = Math.min(Math.floor(v), snaps.length - 1); while (i > 0 && !snaps[i])
+    i--; if (!snaps[i])
+    return; restore(snaps[i]); snaps.length = i + 1; $('res').style.display = 'none'; while (t < v && !ended)
+    phys(CFG.dt); }
+// ===== phases / rules =====
+
+/** Name of the current game phase. */
+function phase() { return t < 20 ? 'Autonomous' : t < 30 ? 'Transition' : t < 130 ? 'Teleop S' + (Math.floor((t - 30) / 25) + 1) : t < 160 ? 'Endgame' : 'Match Complete'; }
+
+/** The climbable LADDER at the front of an alliance TOWER; the rest of the TOWER is open floor. */
+function ladderRect(al) { const k = CFG.towers[al], d = CFG.ladderDepth; return al == 'red' ? { x: k.x + k.w - d, y: k.y, w: d, h: k.h } : { x: k.x, y: k.y, w: d, h: k.h }; }
+
+/** True when the robot is touching its own TOWER ladder. */
+function atLadder(r) { const k = ladderRect(r.al), dx = Math.max(k.x - r.x, 0, r.x - (k.x + k.w)), dy = Math.max(k.y - r.y, 0, r.y - (k.y + k.h)); return Math.hypot(dx, dy) < r.len / 2 + 4; }
+
+/** Begin a climb at the ladder (AUTO allows LEVEL 1 only). */
+function startClimb(r, l) { if (r.climbing)
+    return; if (!atLadder(r)) {
+    log(r.team + ' climb failed: not at TOWER ladder');
+    return;
+} if (l > 1 && t < 20) {
+    log(r.team + ' AUTO allows LEVEL 1 only');
+    return;
+} r.climbing = true; r.hold = false; r.cl = { lvl: l, dur: CFG.climb[l] }; r.ct = 0; log(`${r.team} climbing L${l}`); }
+
+/** Ranking points: ENERGIZED / SUPERCHARGED / TRAVERSAL thresholds plus win/tie points. */
+function rpCalc() { const o = {}; for (const al of ['red', 'blue']) {
+    let n = 0;
+    if (fuelA[al] >= CFG.rp.energized)
+        n++;
+    if (fuelA[al] >= CFG.rp.supercharged)
+        n++;
+    if (tp[al] >= CFG.rp.traversal)
+        n++;
+    o[al] = n;
+} if (score.red > score.blue)
+    o.red += 3;
+else if (score.blue > score.red)
+    o.blue += 3;
+else {
+    o.red++;
+    o.blue++;
+} return o; }
+
+/** End of match: assess TELEOP TOWER points and show the results. */
+function finish() { if (ended)
+    return; ended = true; if (cfg.mode != 'auto')
+    for (const r of robots)
+        if (r.level) {
+            const p = CFG.towerPts[r.level];
+            score[r.al] += p;
+            tp[r.al] += p;
+            log(`${r.team} L${r.level} TOWER +${p}`);
+        } log('Match ended'); if (!quiet)
+    showRes(); }
+
+/** Results dialog. */
+function showRes() { const rp = rpCalc(); $('resb').innerHTML = `<h2>Match complete</h2><table><tr><th></th><th class="r">Red</th><th class="b">Blue</th></tr><tr><td>Score</td><td>${score.red}</td><td>${score.blue}</td></tr><tr><td>AUTO score (incl. 3s window)</td><td>${autoScore ? autoScore.red : '-'}</td><td>${autoScore ? autoScore.blue : '-'}</td></tr><tr><td>FUEL in active HUB</td><td>${fuelA.red}</td><td>${fuelA.blue}</td></tr><tr><td>TOWER pts</td><td>${tp.red}</td><td>${tp.blue}</td></tr><tr><td>Foul credits</td><td>${fp.red}</td><td>${fp.blue}</td></tr><tr><td>Ranking points</td><td>${rp.red}</td><td>${rp.blue}</td></tr></table><p style="color:#aaa">Estimates from configured parameters; not a prediction of event performance.</p><button onclick="$('res').style.display='none'">Close</button>`; $('res').style.display = 'flex'; }
+
+/** Referee tool: credit the opponent for a minor (5) or major (15) foul. */
+function foul(al, p) { const o = al == 'red' ? 'blue' : 'red'; score[o] += p; fp[o] += p; log(`${al} ${p == 5 ? 'MINOR' : 'MAJOR'} FOUL (+${p} ${o})`); }
+
+/** Human player toggles the OUTPOST chute (24 FUEL per alliance) onto the field. */
+function hp(al) { chuteOpen[al] = !chuteOpen[al]; log(`${al} HP chute ${chuteOpen[al] ? 'open' : 'closed'} (${chute[al]} left)`); }
+// ===== physics =====
+
+/** Advance a fixed 1/6 s of simulated time while paused. */
+function step() { for (let i = 0; i < 20; i++)
+    phys(CFG.dt); }
+
+/** One fixed physics step: phase logic, robots, collisions, FUEL, HUB spill, chutes, snapshots. */
+function phys(dt) {
+    const full = cfg.mode != 'auto', hardEnd = full ? 163 : 23;
+    if (t >= hardEnd) {
+        play = false;
+        finish();
+        return;
+    }
+    const live = t < (full ? 160 : 20), ph = phase();
+    t += dt;
+    if (!F.a && t >= 20) {
+        F.a = 1;
+        for (const al of ['red', 'blue']) {
+            const rs = robots.filter(r => r.al == al && r.level == 1).slice(0, 2);
+            rs.forEach(() => { score[al] += CFG.autoTowerPts; tp[al] += CFG.autoTowerPts; });
+            if (rs.length)
+                log(`${al} AUTO TOWER +${rs.length * CFG.autoTowerPts}`);
+        }
+        robots.forEach(r => { if (r.level == 1)
+            r.hold = false; });
+    }
+    if (!F.b && t >= 23) {
+        F.b = 1;
+        autoScore = { red: score.red, blue: score.blue };
+        RULES.first = fuelA.red > fuelA.blue ? 'red' : fuelA.blue > fuelA.red ? 'blue' : (srand() < .5 ? 'red' : 'blue');
+        log('AUTO result: ' + RULES.first + ' HUB inactive in SHIFT 1');
+    }
+    if (ph != phase())
+        log('Phase: ' + phase());
+    for (const r of robots) {
+        if (!live || r.climbing || r.hold) {
+            r.tvx = r.tvy = r.tw = 0;
+            r.intake = false;
+        }
+        else if (r.cmd.length && r.auto)
+            runCmd(r, dt);
+        else if (r.i == sel)
+            manual(r, dt);
+        else {
+            r.tvx = r.tvy = r.tw = 0;
+        }
+        if (r.climbing) {
+            r.ct += dt;
+            if (r.ct >= r.cl.dur) {
+                r.climbing = false;
+                r.level = r.cl.lvl;
+                r.hold = true;
+                log(`${r.team} reached L${r.level}`);
+            }
+        }
+        if (r.level && !r.climbing && !atLadder(r))
+            r.level = 0;
+        if (r.intake)
+            r.tInt += dt;
+        driveRobot(r, dt);
+    }
+    for (let i = 0; i < 6; i++)
+        for (let j = i + 1; j < 6; j++) {
+            const a = robots[i], b = robots[j], dx = b.x - a.x, dy = b.y - a.y, d = Math.hypot(dx, dy), m = a.len;
+            if (d < m && d > 0) {
+                const p = (m - d) / 2;
+                a.x -= dx / d * p;
+                a.y -= dy / d * p;
+                b.x += dx / d * p;
+                b.y += dy / d * p;
+                stats.collisions++;
+                if (t - lastCol > 1) {
+                    lastCol = t;
+                    log(`Collision ${a.team}/${b.team}`);
+                    cols.push([(a.x + b.x) / 2, (a.y + b.y) / 2, t]);
+                    if (cols.length > 40)
+                        cols.shift();
+                    if (t < 20 && a.al != b.al && ((a.al == 'red' && a.x > CFG.fieldW / 2) || (a.al == 'blue' && a.x < CFG.fieldW / 2) || (b.al == 'red' && b.x > CFG.fieldW / 2) || (b.al == 'blue' && b.x < CFG.fieldW / 2)))
+                        log('WARNING possible G211H: crossed CENTER LINE in AUTO and contacted opponent');
+                }
+            }
+        }
+    grid();
+    for (const b of balls) {
+        if (!b.dead)
+            ballStep(b, dt);
+    }
+    spill(dt);
+    for (const al of ['red', 'blue'])
+        if (chuteOpen[al] && chute[al] > 0) {
+            chuteT[al] -= dt;
+            if (chuteT[al] <= 0) {
+                chuteT[al] = .3;
+                chute[al]--;
+                const rd = al == 'red';
+                balls.push({ x: rd ? 6 : CFG.fieldW - 6, y: rd ? 282 : 36, vx: (rd ? 1 : -1) * (60 + 20 * srand()), vy: (srand() - .5) * 30, z: 0, vz: 0, air: false, dead: false, al: null });
+            }
+        }
+    for (const r of robots) {
+        r.cool -= dt;
+        if (r.intake)
+            intakeCheck(r);
+    }
+    const fl = Math.floor(t);
+    if (!quiet && !snaps[fl])
+        snaps[fl] = snap();
+}
+
+/** Keyboard control of the selected robot (field-centric WASD, J/L rotate, Space shoot). */
+function manual(r, dt) { const f = (keys.w ? 1 : 0) - (keys.s ? 1 : 0), s = (keys.d ? 1 : 0) - (keys.a ? 1 : 0), w = (keys.l ? 1 : 0) - (keys.j ? 1 : 0), m = Math.hypot(f, s) || 1; r.tvx = s / m * r.vmax; r.tvy = -f / m * r.vmax; r.tw = w * r.wmax; if (keys[' '] && r.cool <= 0)
+    shoot(r); }
+
+/** Apply drive model, acceleration limits, field/HUB/post/TRENCH collisions and BUMP slowdown. */
+function driveRobot(r, dt) {
+    if (r.drive == 'diff') {
+        const m = Math.hypot(r.tvx, r.tvy);
+        if (m > 1) {
+            const e = wrap(Math.atan2(r.tvy, r.tvx) - r.h);
+            if (Math.abs(r.tw) < 1e-6)
+                r.tw = Math.max(-r.wmax, Math.min(r.wmax, e * 5));
+            const f = m * Math.max(0, Math.cos(e));
+            r.tvx = Math.cos(r.h) * f;
+            r.tvy = Math.sin(r.h) * f;
+        }
+    }
+    const a = r.acc * dt;
+    r.vx += Math.max(-a, Math.min(a, r.tvx - r.vx));
+    r.vy += Math.max(-a, Math.min(a, r.tvy - r.vy));
+    r.w += Math.max(-8 * dt, Math.min(8 * dt, r.tw - r.w));
+    let kb = 1;
+    for (const z of CFG.zones)
+        if (z.t == 'bump' && r.x > z.x && r.x < z.x + z.w && r.y > z.y && r.y < z.y + z.h)
+            kb = .5;
+    const ox0 = r.x, oy0 = r.y;
+    r.x += r.vx * dt * kb;
+    r.y += r.vy * dt * kb;
+    r.h += r.w * dt;
+    const e = Math.abs(Math.cos(r.h)) * r.len / 2 + Math.abs(Math.sin(r.h)) * r.wid / 2, e2 = Math.abs(Math.sin(r.h)) * r.len / 2 + Math.abs(Math.cos(r.h)) * r.wid / 2;
+    r.x = Math.max(e, Math.min(CFG.fieldW - e, r.x));
+    r.y = Math.max(e2, Math.min(CFG.fieldH - e2, r.y));
+    for (const hx of CFG.hub.x) {
+        const dx = r.x - hx, dy = r.y - CFG.hub.y, d = Math.hypot(dx, dy), m = CFG.hub.r + r.len / 2;
+        if (d < m) {
+            r.x = hx + dx / d * m;
+            r.y = CFG.hub.y + dy / d * m;
+        }
+    }
+    for (const z of CFG.zones) {
+        if (!(z.t == 'solid' || (z.t == 'trench' && !r.trench)))
+            continue;
+        const m = r.len / 2, l = z.x - m, rr = z.x + z.w + m, tp2 = z.y - m, bt = z.y + z.h + m;
+        if (r.x > l && r.x < rr && r.y > tp2 && r.y < bt) {
+            const d = [r.x - l, rr - r.x, r.y - tp2, bt - r.y], q = d.indexOf(Math.min(...d));
+            if (q == 0)
+                r.x = l;
+            else if (q == 1)
+                r.x = rr;
+            else if (q == 2)
+                r.y = tp2;
+            else
+                r.y = bt;
+        }
+    }
+    const mv = Math.hypot(r.x - ox0, r.y - oy0);
+    r.mvs = mv / dt;
+    r.dist += mv;
+    if (mv < 1e-4)
+        r.still += dt;
+    r.tt += dt;
+    if (r.tt > .1) {
+        r.tt = 0;
+        if (r.trail.length < 6000)
+            r.trail.push(r.x, r.y);
+    }
+}
+
+/** World point -> robot frame. */
+function toLocal(r, x, y) { const c = Math.cos(-r.h), s = Math.sin(-r.h), dx = x - r.x, dy = y - r.y; return [dx * c - dy * s, dx * s + dy * c]; }
+
+/** World point -> intake frame (intake points along +x). */
+function intLocal(r, x, y) { const [a, b] = toLocal(r, x, y), c = Math.cos(r.idir), s = Math.sin(r.idir); return [a * c + b * s, -a * s + b * c]; }
+
+/** Collect FUEL entering the intake zone while the intake is on. */
+function intakeCheck(r) {
+    const sd = Math.abs(Math.sin(r.idir)) > .5, hl = (sd ? r.wid : r.len) / 2, hw = (sd ? r.len : r.wid) / 2;
+    for (const b of balls) {
+        if (b.dead || b.air || r.carried >= r.cap)
+            continue;
+        const [lx, ly] = intLocal(r, b.x, b.y);
+        if (lx > hl - 2 && lx < hl + 10 && Math.abs(ly) < hw) {
+            b.dead = true;
+            r.carried++;
+            stats.collected++;
+            if (stats.collected < 4 || stats.collected % 25 == 0)
+                log(`${r.team} collected FUEL (${r.carried})`);
+        }
+    }
+}
+
+/** Where this robot shoots: the HUB inside its ALLIANCE ZONE, otherwise a pass toward its alliance wall. */
+function target(r) { const home = r.al == 'red' ? r.x <= CFG.zoneDepth : r.x >= CFG.fieldW - CFG.zoneDepth; return home ? { x: CFG.hub.x[r.al == 'red' ? 0 : 1], y: CFG.hub.y, hub: true } : { x: r.al == 'red' ? 8 : CFG.fieldW - 8, y: r.y, hub: false }; }
+
+/** World positions of the shooter mounts (turret, double turret, or drum row). */
+function mounts(r, n) { const c = Math.cos(r.h), s = Math.sin(r.h); let L = []; if (r.shooter == 'drum')
+    for (let k = 0; k < n; k++)
+        L.push([r.len / 2, (k - (n - 1) / 2) * 7]);
+else if (r.shooter == 'double')
+    L = [[-.1 * r.len, -.25 * r.wid], [-.1 * r.len, .25 * r.wid]].slice(0, n);
+else
+    L = [[-.1 * r.len, 0]]; return L.map(([a, b]) => [r.x + a * c - b * s, r.y + a * s + b * c]); }
+
+/** Launch FUEL ballistically (hidden height + gravity). Drum fires up to 4 abreast; Double Turret fires 2. */
+function shoot(r) {
+    if (r.carried <= 0)
+        return;
+    const T = target(r), n = Math.min(r.shooter == 'drum' ? 4 : r.shooter == 'double' ? 2 : 1, r.carried), z0 = 20, vz = r.shootV, g = CFG.g;
+    r.cool = r.rate;
+    for (const [px, py] of mounts(r, n)) {
+        r.carried--;
+        stats.shots++;
+        const base = r.shooter == 'drum' ? r.h : Math.atan2(T.y - py, T.x - px), d = Math.max(20, Math.hypot(T.x - px, T.y - py)), tt = T.hub ? (vz + Math.sqrt(vz * vz - 2 * g * (CFG.hub.z - z0))) / g : (vz + Math.sqrt(vz * vz + 2 * g * z0)) / g, vh = d / tt, ang = base + (srand() - .5) * 2 * CFG.robot.disp;
+        balls.push({ x: px, y: py, vx: Math.cos(ang) * vh, vy: Math.sin(ang) * vh, z: z0, vz, air: true, dead: false, al: r.al, by: r.team });
+    }
+    log(`${r.team} ${T.hub ? 'shot' : 'passed to wall'} x${n}`);
+}
+
+/** HUB releases scored FUEL toward the NEUTRAL ZONE in rows of 4 with random speed and angle. */
+function spill(dt) {
+    const S = CFG.hub.spill;
+    for (let hi = 0; hi < 2; hi++) {
+        hubT[hi] -= dt;
+        const q = hubQ[hi];
+        if (hubT[hi] > 0 || !q.length)
+            continue;
+        hubT[hi] = S.interval;
+        const dir = hi ? -1 : 1, n = Math.min(4, q.length);
+        for (let k = 0; k < n; k++) {
+            const b = q.shift();
+            b.dead = false;
+            b.air = false;
+            b.z = b.vz = 0;
+            b.x = CFG.hub.x[hi] + dir * (CFG.hub.r + 6);
+            b.y = CFG.hub.y + (k - 1.5) * 7.2;
+            const sp = S.v * (.5 + 1.1 * srand()), a = (srand() - .5) * S.spread;
+            b.vx = dir * Math.cos(a) * sp;
+            b.vy = Math.sin(a) * sp;
+        }
+    }
+}
+const GC = 12, gm = new Map();
+
+/** Rebuild the spatial hash used for FUEL-FUEL collisions. */
+function grid() { gm.clear(); for (let i = 0; i < balls.length; i++) {
+    const b = balls[i];
+    if (b.dead || b.air)
+        continue;
+    const k = (b.x / GC | 0) * 1000 + (b.y / GC | 0);
+    let a = gm.get(k);
+    if (!a)
+        gm.set(k, a = []);
+    a.push(b);
+} }
+
+/** Advance one FUEL: ballistic flight and HUB scoring, or ground rolling, BUMP roll-off, and collisions. */
+function ballStep(b, dt) {
+    const Fc = CFG.fuel;
+    if (b.air) {
+        b.vz -= CFG.g * dt;
+        const pz = b.z;
+        b.z += b.vz * dt;
+        b.x += b.vx * dt;
+        b.y += b.vy * dt;
+        if (b.vz < 0 && pz >= CFG.hub.z && b.z < CFG.hub.z) {
+            for (let hi = 0; hi < 2; hi++) {
+                const hx = CFG.hub.x[hi];
+                if (Math.hypot(b.x - hx, b.y - CFG.hub.y) < CFG.hub.open) {
+                    b.dead = true;
+                    hubQ[hi].push(b);
+                    const ow = hi ? 'blue' : 'red', ok = RULES.hubActive(t, ow) || RULES.hubActive(t - 3, ow);
+                    if (ok) {
+                        score[ow] += RULES.fuelPoints;
+                        fuelA[ow]++;
+                        stats.hits++;
+                    }
+                    else
+                        stats.wasted++;
+                    log(`FUEL ${ok ? 'scored' : 'into inactive HUB'} (${ow})`);
+                    return;
+                }
+            }
+        }
+        if (b.z <= Fc.r) {
+            b.z = 0;
+            b.air = false;
+            b.vx *= .3;
+            b.vy *= .3;
+        }
+        return;
+    }
+    let onB = false; /* BUMP: FUEL rolls to the alliance-zone or neutral-zone side */
+    for (const z of CFG.bumps) {
+        if (b.x > z.x && b.x < z.x + z.w && b.y > z.y && b.y < z.y + z.h) {
+            onB = true;
+            if (!b.bd) {
+                const m = z.x + z.w / 2;
+                b.bd = Math.abs(b.x - m) < .5 ? (srand() < .5 ? -1 : 1) : (b.x < m ? -1 : 1);
+            }
+            b.vx += b.bd * CFG.bumpRoll * dt;
+            break;
+        }
+    }
+    if (!onB)
+        b.bd = 0;
+    const sp = Math.hypot(b.vx, b.vy);
+    if (sp > 0 && !onB) { // no rolling friction on a BUMP slope
+        const ns = Math.max(0, sp - (Fc.fric + Fc.drag * sp) * dt);
+        b.vx *= ns / sp;
+        b.vy *= ns / sp;
+        if (ns < .5)
+            b.vx = b.vy = 0;
+    }
+    b.x += b.vx * dt;
+    b.y += b.vy * dt;
+    if (b.x < Fc.r) {
+        b.x = Fc.r;
+        b.vx = -b.vx * Fc.rest;
+    }
+    if (b.x > CFG.fieldW - Fc.r) {
+        b.x = CFG.fieldW - Fc.r;
+        b.vx = -b.vx * Fc.rest;
+    }
+    if (b.y < Fc.r) {
+        b.y = Fc.r;
+        b.vy = -b.vy * Fc.rest;
+    }
+    if (b.y > CFG.fieldH - Fc.r) {
+        b.y = CFG.fieldH - Fc.r;
+        b.vy = -b.vy * Fc.rest;
+    }
+    const m = Math.hypot(b.vx, b.vy);
+    if (m > 400) {
+        b.vx *= 400 / m;
+        b.vy *= 400 / m;
+    }
+    for (const hx of CFG.hub.x) {
+        const dx = b.x - hx, dy = b.y - CFG.hub.y, d = Math.hypot(dx, dy), mm = CFG.hub.r + Fc.r;
+        if (d < mm && d > 0) {
+            b.x = hx + dx / d * mm;
+            b.y = CFG.hub.y + dy / d * mm;
+            const vn = b.vx * dx / d + b.vy * dy / d;
+            if (vn < 0) {
+                b.vx -= (1 + Fc.rest) * vn * dx / d;
+                b.vy -= (1 + Fc.rest) * vn * dy / d;
+            }
+        }
+    }
+    for (const r of robots) {
+        const [lx, ly] = toLocal(r, b.x, b.y), hl = r.len / 2 + Fc.r, hw = r.wid / 2 + Fc.r;
+        if (Math.abs(lx) < hl && Math.abs(ly) < hw) {
+            if (r.intake && r.carried < r.cap && intLocal(r, b.x, b.y)[0] > 0)
+                continue;
+            const px = hl - Math.abs(lx), py = hw - Math.abs(ly);
+            let nx, ny;
+            if (px < py) {
+                nx = Math.sign(lx);
+                ny = 0;
+            }
+            else {
+                nx = 0;
+                ny = Math.sign(ly);
+            }
+            const c = Math.cos(r.h), s = Math.sin(r.h), wx = nx * c - ny * s, wy = nx * s + ny * c, p = Math.min(px, py);
+            b.x += wx * p;
+            b.y += wy * p;
+            const vn = (b.vx - r.vx) * wx + (b.vy - r.vy) * wy;
+            if (vn < 0) {
+                b.vx -= (1 + Fc.rest) * vn * wx;
+                b.vy -= (1 + Fc.rest) * vn * wy;
+            }
+        }
+    }
+    const kx = b.x / GC | 0, ky = b.y / GC | 0;
+    for (let i = -1; i <= 1; i++)
+        for (let j = -1; j <= 1; j++) {
+            const a = gm.get((kx + i) * 1000 + ky + j);
+            if (!a)
+                continue;
+            for (const o of a) {
+                if (o === b || o.dead)
+                    continue;
+                const dx = o.x - b.x, dy = o.y - b.y, d = Math.hypot(dx, dy), mm = 2 * Fc.r;
+                if (d < mm && d > 0) {
+                    const p = (mm - d) / 2, nx = dx / d, ny = dy / d;
+                    b.x -= nx * p;
+                    b.y -= ny * p;
+                    o.x += nx * p;
+                    o.y += ny * p;
+                    const vr = (o.vx - b.vx) * nx + (o.vy - b.vy) * ny;
+                    if (vr < 0) {
+                        const j2 = -(1 + Fc.rest) * vr / 2;
+                        b.vx -= j2 * nx;
+                        b.vy -= j2 * ny;
+                        o.vx += j2 * nx;
+                        o.vy += j2 * ny;
+                    }
+                }
+            }
+        }
+}
+// ===== autonomous: commands, planner, smoothing =====
+
+/** Convert waypoints into an executable command list (action waypoints drive there first). */
+function startRoutine(r) { r.cmd = r.wp.flatMap(w => { if (isDrive(w))
+    return [{ ...w }]; const cl = String(w.a).startsWith('climb'), L = ladderRect(r.al); return [{ x: cl ? L.x + L.w / 2 : w.x, y: cl ? L.y + L.h / 2 : w.y, a: 'drive', tol: cl ? 8 : 3 }, { ...w }]; }); r.auto = true; r.ci = 0; r.ct = 0; r.stuck = 0; log(`${r.team} routine started (${r.cmd.length} cmds)`); }
+
+/** Run the selected robot routine. */
+function runAuto() { startRoutine(robots[sel]); }
+
+/** Run every robot that has waypoints. */
+function runAll() { for (const r of robots)
+    if (r.wp.length)
+        startRoutine(r); }
+
+/** Clear the selected robot path. */
+function clearWP() { const r = robots[sel]; r.wp = []; r.cmd = []; r.auto = false; }
+
+/** Can a robot of this type cross a HUB column at height y (over a BUMP, or through a TRENCH opening)? */
+function laneOK(r, y) { const m = r.len / 2 + 2, H = CFG.hub.y, e = H - 23.5 - 73, B = [[e, H - 23.5], [H + 23.5, H + 23.5 + 73]], K = CFG.trench, T = [[K.sup, K.w - K.sup], [CFG.fieldH - K.w + K.sup, CFG.fieldH - K.sup]]; return B.some(a => y - m > a[0] && y + m < a[1]) || (r.trench && T.some(a => y - m > a[0] && y + m < a[1])); }
+
+/** Insert detour waypoints so robots cross each HUB column through a legal BUMP or TRENCH lane. */
+function planVia(r, c) {
+    const v = [], s = Math.sign(c.x - r.x), hubs = s > 0 ? CFG.hub.x : [...CFG.hub.x].reverse();
+    let p = { x: r.x, y: r.y };
+    for (const hx of hubs) {
+        if (!((p.x < hx - 24 && c.x > hx + 24) || (p.x > hx + 24 && c.x < hx - 24)))
+            continue;
+        const yc = p.y + (c.y - p.y) * (hx - p.x) / (c.x - p.x);
+        if (laneOK(r, yc))
+            continue;
+        const lanes = [98.85, 218.85, ...(r.trench ? [CFG.trench.w / 2, CFG.fieldH - CFG.trench.w / 2] : [])].sort((a, b) => Math.abs(a - yc) - Math.abs(b - yc)), ly = lanes[0];
+        v.push({ x: hx - s * 38, y: ly, a: c.a, pl: 1 }, { x: hx + s * 38, y: ly, a: c.a, pl: 1 });
+        p = { x: hx + s * 38, y: ly };
+    }
+    return v;
+}
+const isDrive = c => c && c.a != 'wait' && c.a != 'shoot' && c.a != 'turn' && !String(c.a).startsWith('climb');
+
+/** Execute one command per step: climb, wait, turn, aim+shoot, or drive (with corner blending and stall detection). */
+function runCmd(r, dt) {
+    const c = r.cmd[r.ci];
+    if (!c) {
+        r.auto = false;
+        r.tvx = r.tvy = r.tw = 0;
+        r.intake = false;
+        log(r.team + ' routine done');
+        return;
+    }
+    r.intake = c.a == 'intake';
+    if (String(c.a).startsWith('climb')) {
+        r.tvx = r.tvy = r.tw = 0;
+        startClimb(r, +c.a.slice(5));
+        r.ci++;
+        return;
+    }
+    if (c.a == 'wait') {
+        r.tvx = r.tvy = r.tw = 0;
+        r.ct += dt;
+        if (r.ct > 1) {
+            r.ci++;
+            r.ct = 0;
+        }
+        return;
+    }
+    if (c.a == 'turn') {
+        const e = wrap(c.h - r.h);
+        r.tvx = r.tvy = 0;
+        r.tw = Math.max(-r.wmax, Math.min(r.wmax, e * 6));
+        if (Math.abs(e) < .03)
+            r.ci++;
+        return;
+    }
+    if (c.a == 'shoot') {
+        const T = target(r), want = Math.atan2(T.y - r.y, T.x - r.x);
+        let e = wrap(want - r.h);
+        if (r.shooter != 'drum')
+            e = 0;
+        r.tvx = r.tvy = 0;
+        r.tw = Math.max(-r.wmax, Math.min(r.wmax, e * 6));
+        r.ct += dt;
+        if (Math.abs(e) < .05) {
+            if (r.cool <= 0)
+                shoot(r);
+            if (r.carried <= 0 || r.ct > 8) {
+                r.ci++;
+                r.ct = 0;
+            }
+        }
+        return;
+    }
+    if (!c.pl && !c.chk) {
+        c.chk = 1;
+        const v = planVia(r, c);
+        if (v.length) {
+            r.cmd.splice(r.ci, 0, ...v);
+            return;
+        }
+    }
+    const nx = r.cmd[r.ci + 1], mid = isDrive(nx), dx = c.x - r.x, dy = c.y - r.y, d = Math.hypot(dx, dy), sp = Math.hypot(r.vx, r.vy), tol = c.tol || (mid ? Math.min(20, 5 + .1 * sp) : 3), base = Math.sqrt(2 * r.acc * .8 * d) + 8, vmax = mid ? Math.max(70, Math.min(r.vmax, base)) : Math.min(r.vmax, base);
+    r.stuck = ((r.mvs || 0) < 4 && d > tol) ? r.stuck + dt : 0;
+    if (r.stuck > 2) {
+        r.stuck = 0;
+        stats.blocked++;
+        log(r.team + ' blocked, skipping waypoint');
+        r.ci++;
+        return;
+    }
+    if (d < tol) {
+        r.ci++;
+        if (!mid)
+            r.tvx = r.tvy = 0;
+        return;
+    }
+    r.tvx = dx / d * vmax;
+    r.tvy = dy / d * vmax;
+    r.tw = 0;
+}
+
+/** Rough routine duration estimate. */
+function estTime(r) { let p = { x: r.x, y: r.y }, s = 0; for (const w of r.wp) {
+    s += Math.hypot(w.x - p.x, w.y - p.y) / (.75 * r.vmax);
+    p = w;
+    if (w.a == 'wait')
+        s += 1;
+    else if (w.a == 'shoot')
+        s += r.carried * r.rate + .5;
+    else if (w.a == 'turn')
+        s += .7;
+    else if (String(w.a).startsWith('climb'))
+        s += CFG.climb[+w.a.slice(5)] || 0;
+} return s; }
+// ===== compare / self-test (headless, same seed) =====
+
+/** Store the current routines as slot A or B. */
+function saveSlot(k) { slots[k] = robots.map(r => JSON.parse(JSON.stringify(r.wp))); log('Routine ' + k + ' saved'); }
+
+/** Headless full-match run with the same seed (state is restored afterwards). */
+function simRoutine(w) {
+    const keep = snap(), cf = robots.map(cfgOf), kk = keys, sv = play, pw = initSnap;
+    keys = {};
+    quiet = true;
+    build();
+    robots.forEach((r, i) => { Object.assign(r, cf[i]); r.wp = JSON.parse(JSON.stringify(w[i] || [])); if (r.wp.length)
+        startRoutine(r); });
+    let g = 0;
+    while (!ended && g++ < 40000)
+        phys(CFG.dt);
+    const res = { red: score.red, blue: score.blue, auto: autoScore ? autoScore.red + '/' + autoScore.blue : '-', shots: stats.shots, hits: stats.hits, coll: stats.collisions, blocked: stats.blocked, collected: stats.collected, rp: rpCalc(), dist: robots.map(r => Math.round(r.dist)) };
+    quiet = false;
+    keys = kk;
+    restore(keep);
+    play = sv;
+    initSnap = pw;
+    return res;
+}
+
+/** Compare routines A and B under identical conditions. */
+function compare() {
+    if (!slots.A || !slots.B) {
+        $('cmp').textContent = 'Save routines A and B first.';
+        return;
+    }
+    const a = simRoutine(slots.A), b = simRoutine(slots.B), row = (n, f) => `<tr><td>${n}</td><td>${f(a)}</td><td>${f(b)}</td></tr>`;
+    $('cmp').innerHTML = '<table><tr><th></th><th>A</th><th>B</th></tr>' + row('Red / Blue', x => x.red + ' / ' + x.blue) + row('AUTO R/B', x => x.auto) + row('Shots', x => x.shots) + row('Scored', x => x.hits) + row('Shot %', x => x.shots ? (100 * x.hits / x.shots).toFixed(0) : 0) + row('Collected', x => x.collected) + row('Collisions', x => x.coll) + row('Blocked', x => x.blocked) + row('RP R/B', x => x.rp.red + ' / ' + x.rp.blue) + row('Travel (in)', x => x.dist.join(',')) + '</table><small>Same seed and start; estimates only.</small>';
+}
+
+/** Determinism and NaN check. */
+function selfTest() { const w = robots.map(r => JSON.parse(JSON.stringify(r.wp))), a = JSON.stringify(simRoutine(w)), b = JSON.stringify(simRoutine(w)); const nan = balls.some(x => x.x != x.x || x.y != x.y); $('cmp').textContent = 'Determinism: ' + (a == b ? 'PASS' : 'FAIL') + ' | NaN balls: ' + (nan ? 'FAIL' : 'none') + ' | free FUEL ' + balls.filter(x => !x.dead).length; }
+// ===== render =====
+
+/** Fit the canvas (with margin for OUTPOSTs outside the field). */
+function resize() { cv.width = cv.clientWidth; cv.height = cv.clientHeight; tlc.width = tlc.clientWidth || 600; bs = Math.min(cv.width / (CFG.fieldW + 100), cv.height / (CFG.fieldH + 30)); scale = bs * zm; ox = (cv.width - CFG.fieldW * bs) / 2; oy = (cv.height - CFG.fieldH * bs) / 2; }
+addEventListener('resize', resize);
+
+/** Collapse or expand the side panel. */
+function togSide() { const s = $('side'); s.style.display = s.style.display == 'none' ? '' : 'none'; resize(); }
+const X = x => ox + pox + x * scale, Y = y => oy + poy + y * scale;
+
+/** Render field, elements, FUEL, robots, overlays, score bug and panels. */
+function draw() {
+    cx.clearRect(0, 0, cv.width, cv.height);
+    if (!robots.length)
+        return;
+    cx.fillStyle = '#2d3036';
+    cx.fillRect(X(0), Y(0), CFG.fieldW * scale, CFG.fieldH * scale);
+    cx.fillStyle = '#ff5a5a22';
+    cx.fillRect(X(0), Y(0), CFG.fieldW / 2 * scale, CFG.fieldH * scale);
+    cx.fillStyle = '#5a9bff22';
+    cx.fillRect(X(CFG.fieldW / 2), Y(0), CFG.fieldW / 2 * scale, CFG.fieldH * scale);
+    cx.strokeStyle = '#fff';
+    cx.lineWidth = 2;
+    cx.strokeRect(X(0), Y(0), CFG.fieldW * scale, CFG.fieldH * scale);
+    cx.beginPath();
+    cx.moveTo(X(CFG.fieldW / 2), Y(0));
+    cx.lineTo(X(CFG.fieldW / 2), Y(CFG.fieldH));
+    cx.stroke();
+    cx.strokeStyle = '#ff5a5a88';
+    cx.beginPath();
+    cx.moveTo(X(CFG.zoneDepth), Y(0));
+    cx.lineTo(X(CFG.zoneDepth), Y(CFG.fieldH));
+    cx.stroke();
+    cx.strokeStyle = '#5a9bff88';
+    cx.beginPath();
+    cx.moveTo(X(CFG.fieldW - CFG.zoneDepth), Y(0));
+    cx.lineTo(X(CFG.fieldW - CFG.zoneDepth), Y(CFG.fieldH));
+    cx.stroke();
+    if ($('ovg').checked) {
+        cx.strokeStyle = '#ffffff18';
+        cx.lineWidth = 1;
+        for (let x = 0; x <= CFG.fieldW; x += 50) {
+            cx.beginPath();
+            cx.moveTo(X(x), Y(0));
+            cx.lineTo(X(x), Y(CFG.fieldH));
+            cx.stroke();
+        }
+        for (let y = 0; y <= CFG.fieldH; y += 50) {
+            cx.beginPath();
+            cx.moveTo(X(0), Y(y));
+            cx.lineTo(X(CFG.fieldW), Y(y));
+            cx.stroke();
+        }
+    }
+    for (const al of ['red', 'blue']) {
+        const o = CFG.outposts[al], k = CFG.towers[al], L = ladderRect(al), c = al == 'red' ? '#c0392b' : '#2e6fd0';
+        cx.fillStyle = c;
+        cx.globalAlpha = .5;
+        cx.fillRect(X(o.x), Y(o.y), o.w * scale, o.h * scale);
+        cx.globalAlpha = 1;
+        cx.strokeStyle = c;
+        cx.lineWidth = 1;
+        cx.strokeRect(X(o.x), Y(o.y), o.w * scale, o.h * scale);
+        cx.fillStyle = '#fff';
+        cx.font = '9px sans-serif';
+        cx.fillText('OUTPOST ' + chute[al], X(o.x) + 2, Y(o.y) + 12);
+        cx.fillStyle = '#ffffff18';
+        cx.fillRect(X(k.x), Y(k.y), k.w * scale, k.h * scale);
+        cx.fillStyle = '#f4d03f';
+        cx.fillRect(X(L.x), Y(L.y), L.w * scale, L.h * scale);
+        cx.fillStyle = '#fff';
+        cx.fillText('TOWER', X(k.x) + 2, Y(k.y) + 10);
+        cx.fillText('LADDER', X(L.x) - 8, Y(k.y + k.h) + 10);
+    }
+    for (const z of CFG.zones) {
+        cx.fillStyle = z.c;
+        cx.globalAlpha = z.t == 'bump' ? .65 : z.t == 'trench' ? .3 : 1;
+        cx.fillRect(X(z.x), Y(z.y), z.w * scale, z.h * scale);
+        cx.globalAlpha = 1;
+        cx.fillStyle = '#fff';
+        cx.font = '9px sans-serif';
+        cx.fillText(z.lbl || z.t.toUpperCase(), X(z.x) + 3, Y(z.y) + 10);
+    }
+    CFG.hub.x.forEach((hx, i) => { const c = i ? '#5a9bff' : '#ff5a5a'; cx.fillStyle = c + (RULES.hubActive(t, i ? 'blue' : 'red') ? '88' : '22'); cx.strokeStyle = c; cx.lineWidth = 3; cx.beginPath(); for (let k = 0; k < 6; k++) {
+        const a = k * Math.PI / 3 + Math.PI / 6;
+        cx.lineTo(X(hx) + Math.cos(a) * CFG.hub.r * scale, Y(CFG.hub.y) + Math.sin(a) * CFG.hub.r * scale);
+    } cx.closePath(); cx.fill(); cx.stroke(); });
+    for (const b of balls) {
+        if (b.dead)
+            continue;
+        if (b.air) {
+            cx.fillStyle = '#0006';
+            cx.beginPath();
+            cx.arc(X(b.x), Y(b.y), CFG.fuel.r * scale, 0, 7);
+            cx.fill();
+            cx.fillStyle = '#fff';
+            cx.beginPath();
+            cx.arc(X(b.x), Y(b.y) - b.z * scale * .3, CFG.fuel.r * scale * (1 + b.z / 600), 0, 7);
+            cx.fill();
+        }
+        else {
+            cx.fillStyle = (b.vx || b.vy) ? '#ffb347' : '#ffd23f';
+            cx.beginPath();
+            cx.arc(X(b.x), Y(b.y), CFG.fuel.r * scale, 0, 7);
+            cx.fill();
+        }
+    }
+    if ($('ovc').checked)
+        for (const c of cols) {
+            if (t - c[2] > 3 || t < c[2])
+                continue;
+            cx.strokeStyle = '#ff0';
+            cx.lineWidth = 2;
+            cx.beginPath();
+            cx.arc(X(c[0]), Y(c[1]), 12 * scale, 0, 7);
+            cx.stroke();
+        }
+    const op = $('ovp').checked, oa = $('ova').checked, os = $('ovs').checked, ov = $('ovv').checked;
+    for (const r of robots) {
+        const col = r.al == 'red' ? '#ff9a9a' : '#9ac2ff';
+        if (oa && r.trail.length > 3) {
+            cx.strokeStyle = col;
+            cx.globalAlpha = .6;
+            cx.lineWidth = 1;
+            cx.beginPath();
+            cx.moveTo(X(r.trail[0]), Y(r.trail[1]));
+            for (let k = 2; k < r.trail.length; k += 2)
+                cx.lineTo(X(r.trail[k]), Y(r.trail[k + 1]));
+            cx.stroke();
+            cx.globalAlpha = 1;
+        }
+        if (op && r.wp.length) {
+            cx.strokeStyle = col;
+            cx.lineWidth = 2;
+            cx.setLineDash([5, 4]);
+            cx.beginPath();
+            cx.moveTo(X(r.x), Y(r.y));
+            r.wp.forEach((w, i) => { const n = r.wp[i + 1]; if (n && isDrive(w) && isDrive(n))
+                cx.quadraticCurveTo(X(w.x), Y(w.y), X((w.x + n.x) / 2), Y((w.y + n.y) / 2));
+            else
+                cx.lineTo(X(w.x), Y(w.y)); });
+            cx.stroke();
+            cx.setLineDash([]);
+            r.wp.forEach((w, i) => { cx.fillStyle = isDrive(w) ? '#fff' : '#fd0'; cx.beginPath(); cx.arc(X(w.x), Y(w.y), 6, 0, 7); cx.fill(); cx.fillStyle = '#000'; cx.font = '9px sans-serif'; cx.fillText(i + 1, X(w.x) - 3, Y(w.y) + 3); });
+        }
+        const nsh = r.shooter == 'drum' ? Math.min(4, r.carried || 4) : r.shooter == 'double' ? 2 : 1, T = target(r);
+        if (os) {
+            cx.lineWidth = 2;
+            cx.strokeStyle = r.shooter == 'drum' ? '#fa0' : '#0ff';
+            for (const [px, py] of mounts(r, r.shooter == 'drum' ? 1 : nsh)) {
+                const a = r.shooter == 'drum' ? r.h : Math.atan2(T.y - py, T.x - px);
+                cx.beginPath();
+                cx.moveTo(X(px), Y(py));
+                cx.lineTo(X(px + Math.cos(a) * 34), Y(py + Math.sin(a) * 34));
+                cx.stroke();
+            }
+        }
+        if (ov) {
+            cx.strokeStyle = '#0f0';
+            cx.beginPath();
+            cx.moveTo(X(r.x), Y(r.y));
+            cx.lineTo(X(r.x + r.vx * .3), Y(r.y + r.vy * .3));
+            cx.stroke();
+        }
+        cx.save();
+        cx.translate(X(r.x), Y(r.y));
+        cx.rotate(r.h);
+        cx.fillStyle = r.al == 'red' ? '#c0392b' : '#2e6fd0';
+        cx.strokeStyle = r.i == sel ? '#ffe600' : '#fff';
+        cx.lineWidth = r.i == sel ? 3 : 1;
+        cx.fillRect(-r.len / 2 * scale, -r.wid / 2 * scale, r.len * scale, r.wid * scale);
+        cx.strokeRect(-r.len / 2 * scale, -r.wid / 2 * scale, r.len * scale, r.wid * scale);
+        cx.fillStyle = '#fff';
+        cx.fillRect(r.len / 2 * scale - 2, -3, 2, 6);
+        cx.save();
+        cx.rotate(r.idir);
+        const sd = Math.abs(Math.sin(r.idir)) > .5, hl = (sd ? r.wid : r.len) / 2 * scale, hw = (sd ? r.len : r.wid) / 2 * scale;
+        cx.fillStyle = r.intake ? '#2ecc71' : '#2d6b45';
+        cx.fillRect(hl, -hw * .8, 5, hw * 1.6);
+        cx.beginPath();
+        cx.moveTo(hl + 13, 0);
+        cx.lineTo(hl + 4, -5);
+        cx.lineTo(hl + 4, 5);
+        cx.fill();
+        cx.restore();
+        cx.fillStyle = r.shooter == 'drum' ? '#fa0' : '#0ff';
+        if (r.shooter == 'drum')
+            cx.fillRect(r.len * scale * .2, -r.wid * scale * .4, r.len * scale * .28, r.wid * scale * .8);
+        else
+            for (const b of r.shooter == 'double' ? [-.25, .25] : [0]) {
+                cx.beginPath();
+                cx.arc(-.1 * r.len * scale, b * r.wid * scale, r.wid * scale * .16, 0, 7);
+                cx.fill();
+            }
+        cx.rotate(-r.h);
+        cx.fillStyle = '#fff';
+        cx.font = 'bold 11px sans-serif';
+        cx.textAlign = 'center';
+        cx.fillText(r.team, 0, -2);
+        cx.fillText((r.al == 'red' ? 'R' : 'B') + (r.i % 3 + 1) + ' [' + r.carried + ']' + (r.level ? ' L' + r.level : r.climbing ? ' ^' : ''), 0, 10);
+        cx.restore();
+    }
+    if ($('ovd').checked) {
+        cx.fillStyle = '#0f0';
+        cx.font = '11px monospace';
+        cx.fillText(`t=${t.toFixed(2)} dt=${CFG.dt.toFixed(4)} free=${balls.filter(b => !b.dead).length} nan=${balls.some(b => b.x != b.x)}`, 10, 15);
+    }
+    const fmt = s => Math.floor(s / 60) + ':' + String(Math.floor(s % 60)).padStart(2, '0'), nb = BOUND.find(b => b > t) || 160;
+    $('rs').textContent = score.red;
+    $('bs').textContent = score.blue;
+    $('clock').textContent = fmt(Math.max(0, 160 - t));
+    $('shiftT').textContent = ':' + String(Math.ceil(nb - t)).padStart(2, '0');
+    $('pl').textContent = t < 20 ? 'A' : t < 30 ? 'T' : t < 130 ? (RULES.hubActive(t, 'red') ? 'R' : 'B') : t < 160 ? 'E' : '-';
+    $('phase').textContent = phase() + ' | HUB R:' + (RULES.hubActive(t, 'red') ? 'ON' : 'off') + ' B:' + (RULES.hubActive(t, 'blue') ? 'ON' : 'off');
+    $('rf').textContent = fuelA.red + '/' + (fuelA.red >= CFG.rp.energized ? CFG.rp.supercharged : CFG.rp.energized);
+    $('bf').textContent = fuelA.blue + '/' + (fuelA.blue >= CFG.rp.energized ? CFG.rp.supercharged : CFG.rp.energized);
+    const r = robots[sel];
+    $('info').innerHTML = `${r.al} ${esc(r.team)}<br>x ${r.x.toFixed(0)} y ${r.y.toFixed(0)} hdg ${((r.h * 57.3 % 360 + 360) % 360).toFixed(0)}°<br>speed ${Math.hypot(r.vx, r.vy).toFixed(0)} in/s<br>FUEL ${r.carried}/${r.cap} intake ${r.intake ? 'ON' : 'off'} (${r.tInt.toFixed(1)}s)<br>dist ${r.dist.toFixed(0)} in, still ${r.still.toFixed(1)}s<br>TOWER level ${r.level}${r.climbing ? ' (climbing)' : ''}<br>est routine ${estTime(r).toFixed(1)}s`;
+    $('stats').innerHTML = `Shots ${stats.shots} scored ${stats.hits} (${stats.shots ? (100 * stats.hits / stats.shots).toFixed(0) : 0}%) inactive ${stats.wasted}<br>Collected ${stats.collected} Collisions ${stats.collisions} Blocked ${stats.blocked}<br>AUTO score R/B ${autoScore ? autoScore.red + '/' + autoScore.blue : '(pending)'}<br>TOWER pts R ${tp.red} B ${tp.blue} | Foul credit R ${fp.red} B ${fp.blue}<br>Chutes R ${chute.red} B ${chute.blue}`;
+    tcx.clearRect(0, 0, tlc.width, 14);
+    for (const e of events) {
+        const x = e[0] / 163 * tlc.width, m = e[1];
+        tcx.fillStyle = /FUEL scored/.test(m) ? '#2ecc71' : /shot|passed/.test(m) ? '#fa0' : /Collision/.test(m) ? '#f55' : /Phase|AUTO/.test(m) ? '#fff' : /collected/.test(m) ? '#ffd23f' : '#888';
+        tcx.fillRect(x, /Phase/.test(m) ? 0 : 5, 1.5, /Phase/.test(m) ? 14 : 8);
+    }
+    $('tl').value = t;
+    $('tlt').textContent = t.toFixed(1) + 's';
+}
+
+/** Load the selected robot settings into the panel. */
+function syncUI() { const r = robots[sel]; $('cs').value = r.shooter; $('ctv').value = r.trench ? 'trench' : 'bump'; $('cdr').value = r.drive; $('cid').value = Object.keys(IDIR).find(k => Math.abs(IDIR[k] - r.idir) < .01) || 'f'; $('cc').value = r.cap; $('cr').value = r.rate; }
+
+/** Apply panel settings to the selected robot. */
+function cfgR() { const r = robots[sel]; if (!r)
+    return; r.shooter = $('cs').value; r.trench = $('ctv').value == 'trench'; r.drive = $('cdr').value; r.idir = IDIR[$('cid').value]; r.cap = +$('cc').value || 1; r.rate = +$('cr').value || .1; }
+
+/** requestAnimationFrame loop with a fixed-timestep accumulator. */
+function loop(ts) { const dt = Math.min(.1, (ts - last) / 1000); last = ts; if (play && robots.length) {
+    acc += dt * speed;
+    while (acc >= CFG.dt && play) {
+        phys(CFG.dt);
+        acc -= CFG.dt;
+    }
+} draw(); requestAnimationFrame(loop); }
+requestAnimationFrame(loop);
+// ===== input =====
+
+/** Screen -> world coordinates. */
+function wpos(e) { const r = cv.getBoundingClientRect(); return [(e.clientX - r.left - ox - pox) / scale, (e.clientY - r.top - oy - poy) / scale]; }
+cv.oncontextmenu = e => e.preventDefault();
+cv.onmousedown = e => {
+    if (e.button != 0 || e.shiftKey) {
+        pan = [e.clientX, e.clientY];
+        return;
+    }
+    const [x, y] = wpos(e), r0 = robots[sel];
+    dragWP = null;
+    if (r0) {
+        const i = r0.wp.findIndex(w => Math.hypot(w.x - x, w.y - y) < 8 / zm + 4);
+        if (i >= 0) {
+            dragWP = i;
+            return;
+        }
+    }
+    const h = robots.find(r => Math.hypot(r.x - x, r.y - y) < r.len / 2);
+    if (h) {
+        sel = h.i;
+        syncUI();
+        return;
+    }
+    if ($('edit').checked) {
+        const a = $('act').value;
+        r0.wp.push({ x, y, a, h: (parseFloat($('hd').value) || 0) * Math.PI / 180 });
+    }
+};
+cv.onmousemove = e => { if (pan) {
+    pox += e.clientX - pan[0];
+    poy += e.clientY - pan[1];
+    pan = [e.clientX, e.clientY];
+    return;
+} if (dragWP !== null) {
+    const [x, y] = wpos(e), w = robots[sel].wp[dragWP];
+    if (w) {
+        w.x = x;
+        w.y = y;
+    }
+} };
+cv.onmouseup = () => { dragWP = null; pan = null; };
+cv.onwheel = e => { e.preventDefault(); const r = cv.getBoundingClientRect(), mx = e.clientX - r.left, my = e.clientY - r.top, wx = (mx - ox - pox) / scale, wy = (my - oy - poy) / scale; zm = Math.max(.5, Math.min(8, zm * (e.deltaY < 0 ? 1.15 : 1 / 1.15))); scale = bs * zm; pox = mx - ox - wx * scale; poy = my - oy - wy * scale; };
+addEventListener('keydown', e => { if (['INPUT', 'SELECT'].includes(e.target.tagName))
+    return; const k = e.key.toLowerCase(); keys[k] = true; if (!robots.length)
+    return; if (k == 'i')
+    robots[sel].intake = !robots[sel].intake; if (k == 'c')
+    startClimb(robots[sel], +$('clm').value); if (k == ' ')
+    e.preventDefault(); });
+addEventListener('keyup', e => keys[e.key.toLowerCase()] = false);
+// ===== save/load (schema v2; v1 accepted) =====
+
+/** Serialise a strategy (versioned JSON schema). */
+function snapshotJ() { return { version: 2, cfg, physics: CFG.fuel, robots: robots.map(r => ({ team: r.team, ...cfgOf(r), wp: r.wp })), slots, seed: cfg.seed, score, stats, fuelA, tp, fp }; }
+
+/** Load a strategy object (versions 1 and 2). */
+function apply(o) {
+    if (!o || ![1, 2].includes(o.version) || !Array.isArray(o.robots))
+        throw new Error('Unsupported or malformed strategy file (need version 1/2 with robots[])');
+    cfg = o.cfg;
+    Object.assign(CFG.fuel, o.physics || {});
+    build();
+    o.robots.forEach((s, i) => { if (!robots[i])
+        return; for (const k of CF)
+        if (s[k] !== undefined)
+            robots[i][k] = s[k]; robots[i].wp = s.wp || []; });
+    slots = o.slots || {};
+    initSnap = JSON.stringify(robots.map(r => r.wp));
+    syncUI();
+}
+
+/** Save to localStorage. */
+function save() { try {
+    localStorage.setItem('rebuilt_strategy', JSON.stringify(snapshotJ()));
+    log('Strategy saved');
+}
+catch (e) {
+    alert('Save failed: ' + e.message);
+} }
+
+/** Load from localStorage. */
+function loadS() { try {
+    apply(JSON.parse(localStorage.getItem('rebuilt_strategy')));
+    resize();
+}
+catch (e) {
+    alert('Load failed: ' + e.message);
+} }
+
+/** Download strategy JSON. */
+function exportJ() { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(snapshotJ(), null, 1)], { type: 'application/json' })); a.download = 'rebuilt_strategy.json'; a.click(); }
+$('imp').onchange = e => { const f = e.target.files[0]; if (!f)
+    return; const rd = new FileReader(); rd.onload = () => { try {
+    apply(JSON.parse(rd.result));
+    resize();
+}
+catch (x) {
+    alert('Import failed: ' + x.message);
+} }; rd.readAsText(f); };
+</script></body></html>
